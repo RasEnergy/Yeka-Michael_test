@@ -1,0 +1,72 @@
+// API Configuration
+export const API_CONFIG = {
+	BASE_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api",
+	TIMEOUT: 30000, // 30 seconds
+	RETRY_ATTEMPTS: 3,
+} as const;
+
+// User Roles
+export const USER_ROLES = {
+	SUPER_ADMIN: "SUPER_ADMIN",
+	BRANCH_ADMIN: "BRANCH_ADMIN",
+	REGISTRAR: "REGISTRAR",
+	CASHIER: "CASHIER",
+	TEACHER: "TEACHER",
+	STUDENT: "STUDENT",
+	PARENT: "PARENT",
+} as const;
+
+// Payment Methods
+export const PAYMENT_METHODS = {
+	CASH: "CASH",
+	BANK_TRANSFER: "BANK_TRANSFER",
+	TELEBIRR: "TELEBIRR",
+	ONLINE: "ONLINE",
+} as const;
+
+// Payment Status
+export const PAYMENT_STATUS = {
+	PENDING: "PENDING",
+	COMPLETED: "COMPLETED",
+	FAILED: "FAILED",
+	CANCELLED: "CANCELLED",
+	REFUNDED: "REFUNDED",
+} as const;
+
+// Invoice Status
+export const INVOICE_STATUS = {
+	PENDING: "PENDING",
+	PARTIALLY_PAID: "PARTIALLY_PAID",
+	PAID: "PAID",
+	OVERDUE: "OVERDUE",
+	CANCELLED: "CANCELLED",
+} as const;
+
+// Registration Status
+export const REGISTRATION_STATUS = {
+	PENDING_PAYMENT: "PENDING_PAYMENT",
+	PAYMENT_COMPLETED: "PAYMENT_COMPLETED",
+	ENROLLED: "ENROLLED",
+	CANCELLED: "CANCELLED",
+} as const;
+
+// Student Types
+export const STUDENT_TYPES = {
+	REGULAR_STUDENT: "REGULAR_STUDENT",
+	NEW_STUDENT: "NEW_STUDENT",
+} as const;
+
+// Gender
+export const GENDER = {
+	MALE: "MALE",
+	FEMALE: "FEMALE",
+} as const;
+
+// Enrollment Status
+export const ENROLLMENT_STATUS = {
+	ACTIVE: "ACTIVE",
+	INACTIVE: "INACTIVE",
+	TRANSFERRED: "TRANSFERRED",
+	GRADUATED: "GRADUATED",
+	DROPPED: "DROPPED",
+} as const;
