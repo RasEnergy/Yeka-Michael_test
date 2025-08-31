@@ -118,9 +118,10 @@ export default function DashboardLayout({
 			}
 
 			if (role === "REGISTRAR") {
-				return navigation.filter(
-					(item) => !["Classes", "Teachers", "Enrollment"].includes(item.name)
-				);
+				return navigation;
+				// return navigation.filter(
+				// 	(item) => !["Classes", "Teachers", "Enrollment"].includes(item.name)
+				// );
 			}
 
 			if (role === "CASHIER") {

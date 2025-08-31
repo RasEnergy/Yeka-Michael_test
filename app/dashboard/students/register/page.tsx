@@ -55,6 +55,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { Separator } from "@radix-ui/react-select";
+import { apiClient } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Branch {
 	id: string;
@@ -171,6 +173,7 @@ const generateRandomPhone = () => {
 };
 
 export default function StudentRegisterPage() {
+	const { user } = useAuth();
 	const [currentStep, setCurrentStep] = useState(1);
 	const totalSteps = 3;
 	const [formData, setFormData] = useState({
@@ -280,7 +283,7 @@ export default function StudentRegisterPage() {
 
 	useEffect(() => {
 		if (formData.branchId) {
-			fetchGrades(formData.branchId);
+			fetchGrades();
 		}
 	}, [formData.branchId]);
 
@@ -298,12 +301,21 @@ export default function StudentRegisterPage() {
 
 	const fetchBranches = async () => {
 		try {
-			const response = await fetch("/api/branches");
-			if (response.ok) {
-				const data = await response.json();
-				setBranches(data.branches);
-				if (data.branches.length === 1) {
-					setFormData((prev) => ({ ...prev, branchId: data.branches[0].id }));
+			// const response = await fetch("/api/branches");
+			const response = await apiClient.get(
+				`/classes/get-branches/${user?.branchId}`
+			);
+			console.log({
+				responseBranch: response,
+			});
+			if (response.success) {
+				// const data = await response.json();
+				setBranches(response.data.branches);
+				if (response.data.branches.length === 1) {
+					setFormData((prev) => ({
+						...prev,
+						branchId: response.data.branches[0].id,
+					}));
 				}
 			}
 		} catch (error) {
@@ -311,17 +323,31 @@ export default function StudentRegisterPage() {
 		}
 	};
 
-	const fetchGrades = async (branchId?: string) => {
+	const fetchGrades = async () => {
 		try {
-			const response = await fetch("/api/grades");
-			if (response.ok) {
-				const data = await response.json();
-				setGrades(data.grades);
+			const response = await apiClient.get(`/classes/grades/${user?.branchId}`);
+			console.log({
+				responseGrade: response,
+			});
+			if (response.success) {
+				setGrades(response.data.grades || []);
 			}
 		} catch (error) {
 			console.error("Failed to fetch grades:", error);
 		}
 	};
+
+	// const fetchGrades = async (branchId?: string) => {
+	// 	try {
+	// 		const response = await fetch("/api/grades");
+	// 		if (response.ok) {
+	// 			const data = await response.json();
+	// 			setGrades(data.grades);
+	// 		}
+	// 	} catch (error) {
+	// 		console.error("Failed to fetch grades:", error);
+	// 	}
+	// };
 
 	const searchStudent = async (studentId: string) => {
 		if (!studentId || studentId.length < 8) {
@@ -377,21 +403,27 @@ export default function StudentRegisterPage() {
 	const fetchPricing = async (branchId: string, gradeId: string) => {
 		setLoadingPricing(true);
 		try {
-			const response = await fetch(
-				`/api/pricing?branchId=${branchId}&gradeId=${gradeId}`
+			// const response = await fetch(
+			// 	`/api/pricing?branchId=${branchId}&gradeId=${gradeId}`
+			// );
+			const response = await apiClient.get(
+				`/pricing?branchId=${branchId}&gradeId=${gradeId}`
 			);
+			console.log({
+				pricingSchema: response,
+			});
 
 			console.log("Pricing response:", response);
-			if (response.ok) {
-				const data = await response.json();
-				setPricingSchema(data.pricingSchema);
-				setPaymentOptions(data.paymentOptions);
+			if (response) {
+				// const data = await response.json();
+				setPricingSchema((response as any).pricingSchema);
+				setPaymentOptions((response as any).paymentOptions);
 				// Reset selected payment option when pricing changes
 				setSelectedPaymentOption(null);
 				setFormData((prev) => ({ ...prev, paymentDuration: "" }));
 			} else {
-				const errorData = await response.json();
-				setError(errorData.error || "Failed to fetch pricing information");
+				// const errorData = await response.json();
+				// setError(zerrorData.error || "Failed to fetch pricing information");
 				setPricingSchema(null);
 				setPaymentOptions([]);
 			}
@@ -412,11 +444,12 @@ export default function StudentRegisterPage() {
 		}
 		setParentSearchLoading(true);
 		try {
-			const response = await fetch(
-				`/api/parents/search?phone=${encodeURIComponent(phone)}`
+			const response = await apiClient.get(
+				`/parents/search?phone=${encodeURIComponent(phone)}`
 			);
-			if (response.ok) {
-				const data = await response.json();
+			if (response) {
+				const data: any = await response;
+				console.log({ dataParentSearch: data });
 				if (data.found) {
 					setParentInfo(data.parent);
 					setFormData((prev) => ({
@@ -617,6 +650,124 @@ export default function StudentRegisterPage() {
 		setCurrentStep((prev) => Math.max(prev - 1, 1));
 		setError("");
 	};
+
+	//THIS WILL BE ROLLBACK AFTER SUBMITION
+	// const handleSubmit = async (e: React.FormEvent) => {
+	// 	e.preventDefault();
+	// 	setIsLoading(true);
+	// 	setError("");
+
+	// 	if (!validateStep(1) || !validateStep(2) || !validateStep(3)) {
+	// 		setIsLoading(false);
+	// 		return;
+	// 	}
+
+	// 	const ethiopianPhoneRegex = /^(\+251|0)[79]\d{8}$/;
+	// 	if (
+	// 		formData.parentPhone &&
+	// 		!ethiopianPhoneRegex.test(formData.parentPhone)
+	// 	) {
+	// 		setError(
+	// 			"Invalid parent phone number format. Use +251XXXXXXXXX or 09XXXXXXXX"
+	// 		);
+	// 		setIsLoading(false);
+	// 		return;
+	// 	}
+
+	// 	if (formData.dateOfBirth) {
+	// 		const birthDate = new Date(formData.dateOfBirth);
+	// 		const today = new Date();
+	// 		if (birthDate > today) {
+	// 			setError("Date of birth cannot be in the future");
+	// 			setIsLoading(false);
+	// 			return;
+	// 		}
+	// 		const age = today.getFullYear() - birthDate.getFullYear();
+	// 		if (age < 3 || age > 25) {
+	// 			setError("Student age must be between 3 and 25 years");
+	// 			setIsLoading(false);
+	// 			return;
+	// 		}
+	// 	}
+
+	// 	if (
+	// 		formData.placeOfBirth &&
+	// 		(formData.placeOfBirth.length < 2 ||
+	// 			!/^[a-zA-Z\s,.-]+$/.test(formData.placeOfBirth))
+	// 	) {
+	// 		setError("Invalid place of birth format");
+	// 		setIsLoading(false);
+	// 		return;
+	// 	}
+
+	// 	try {
+	// 		const submitFormData = new FormData();
+	// 		Object.entries(formData).forEach(([key, value]) => {
+	// 			if (key === "emailUsername") {
+	// 				submitFormData.append("email", `${value}@yekamichael.com`);
+	// 			} else if (value) {
+	// 				submitFormData.append(key, value);
+	// 			}
+	// 		});
+
+	// 		submitFormData.append(
+	// 			"registrationFee",
+	// 			pricingSchema?.registrationFee?.toString() ?? "0"
+	// 		);
+
+	// 		submitFormData.append(
+	// 			"additionalFee",
+	// 			selectedPaymentOption?.additionalFee?.toString() ?? "0"
+	// 		);
+
+	// 		submitFormData.append(
+	// 			"serviceFee",
+	// 			pricingSchema?.serviceFee?.toString() ?? "0"
+	// 		);
+	// 		submitFormData.append("totalAmount", calculateTotalAmount().toString());
+
+	// 		if (existingStudent && formData.studentType === "REGULAR_STUDENT") {
+	// 			submitFormData.append("existingStudentId", existingStudent.studentId);
+	// 		}
+
+	// 		if (studentPhoto) {
+	// 			submitFormData.append("studentPhoto", studentPhoto);
+	// 		}
+	// 		if (parentPhoto) {
+	// 			submitFormData.append("parentPhoto", parentPhoto);
+	// 		}
+
+	// 		const response: any = await apiClient.postFormData(
+	// 			"/students/register",
+	// 			submitFormData
+	// 		);
+
+	// 		console.log({ responseSubmit: response });
+	// 		// const response = await fetch("/api/students/register", {
+	// 		// 	method: "POST",
+	// 		// 	body: submitFormData,
+	// 		// });
+
+	// 		if (!response) {
+	// 			throw new Error(response.error || "Registration failed");
+	// 		}
+
+	// 		toast({
+	// 			title: "Student registered successfully",
+	// 			description: `Student ID: ${response.student.studentId}`,
+	// 		});
+
+	// 		if (response.redirectTo) {
+	// 			router.push(response.redirectTo);
+	// 		} else {
+	// 			router.push("/dashboard/students");
+	// 		}
+	// 	} catch (err) {
+	// 		setError(err instanceof Error ? err.message : "An error occurred");
+	// 	} finally {
+	// 		setIsLoading(false);
+	// 	}
+	// };
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();

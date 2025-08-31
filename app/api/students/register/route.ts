@@ -48,13 +48,13 @@ async function generateStudentId(branchName: string): Promise<string> {
 	if (existingStudents.length > 0) {
 		// Extract sequence numbers and find the highest
 		const sequences = existingStudents
-			.map((student) => {
+			.map((student: any) => {
 				const match = student.studentId.match(
 					new RegExp(`^${prefix}${branchCode}(\\d{4})$`)
 				);
 				return match ? Number.parseInt(match[1], 10) : 0;
 			})
-			.filter((seq) => seq > 0);
+			.filter((seq: any) => seq > 0);
 
 		if (sequences.length > 0) {
 			nextSequence = Math.max(...sequences) + 1;
@@ -470,7 +470,7 @@ export async function POST(request: NextRequest) {
 		// }
 
 		const result = await prisma.$transaction(
-			async (tx) => {
+			async (tx: any) => {
 				let student: any = existingStudent;
 				let studentUser = existingStudent?.user;
 

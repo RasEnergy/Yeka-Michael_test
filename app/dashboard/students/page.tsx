@@ -60,6 +60,7 @@ import {
 	Edit,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiClient } from "@/lib/api";
 
 interface Student {
 	id: string;
@@ -172,16 +173,17 @@ export default function StudentsPage() {
 					selectedClass !== "all" && { classId: selectedClass }),
 			});
 
-			const response = await fetch(`/api/students?${params}`);
-			const data = await response.json();
+			const response = await apiClient.get(`/students?${params}`);
+			// const data = await response.json();
+			console.log("Students response:", response);
 
-			if (response.ok) {
-				setStudents(data.students);
-				setPagination(data.pagination);
+			if (response.success) {
+				setStudents(response.data.students);
+				setPagination(response.data.pagination);
 			} else {
 				toast({
 					title: "Error",
-					description: data.error || "Failed to fetch students",
+					description: response.data.error || "Failed to fetch students",
 					variant: "destructive",
 				});
 			}

@@ -110,30 +110,30 @@ class ApiClient {
 		endpoint: string,
 		config: RequestConfig = {}
 	): Promise<ApiResponse<T>> {
-		const { params, responseType = "json", ...requestConfig } = config;
+		const { params, responseType = "json", headers, ...requestConfig } = config;
 		const url = this.buildUrl(endpoint, params);
 
-		// const requestOptions: RequestInit = {
-		// 	headers: this.getAuthHeaders(),
-		// 	...requestConfig,
-		// };
-		const requestOptions: RequestInit = {
-			headers: {
-				"Content-Type": "application/json",
-				...config.headers,
-			},
-			credentials: "include", // Include cookies for authentication
-			...config,
+		// Base headers
+		let finalHeaders: HeadersInit = {
+			"Content-Type": "application/json",
+			...headers,
 		};
 
 		// Add authorization header if token exists in localStorage
 		const token = localStorage.getItem("auth-token");
+		console.log("TOKEN_FOUND", token);
 		if (token) {
-			config.headers = {
-				...config.headers,
+			finalHeaders = {
+				...finalHeaders,
 				Authorization: `Bearer ${token}`,
 			};
 		}
+
+		const requestOptions: RequestInit = {
+			headers: finalHeaders,
+			credentials: "include", // Include cookies for authentication
+			...requestConfig,
+		};
 
 		try {
 			const response = await fetch(url, requestOptions);
@@ -157,6 +157,59 @@ class ApiClient {
 			throw error;
 		}
 	}
+
+	// private async requestCaller<T = any>(
+	// 	endpoint: string,
+	// 	config: RequestConfig = {}
+	// ): Promise<ApiResponse<T>> {
+	// 	const { params, responseType = "json", ...requestConfig } = config;
+	// 	const url = this.buildUrl(endpoint, params);
+
+	// 	// const requestOptions: RequestInit = {
+	// 	// 	headers: this.getAuthHeaders(),
+	// 	// 	...requestConfig,
+	// 	// };
+	// 	const requestOptions: RequestInit = {
+	// 		headers: {
+	// 			"Content-Type": "application/json",
+	// 			...config.headers,
+	// 		},
+	// 		credentials: "include", // Include cookies for authentication
+	// 		...config,
+	// 	};
+
+	// 	// Add authorization header if token exists in localStorage
+	// 	const token = localStorage.getItem("auth-token");
+	// 	console.log("TOKEN_FOUND", token);
+	// 	if (token) {
+	// 		config.headers = {
+	// 			...config.headers,
+	// 			Authorization: `Bearer ${token}`,
+	// 		};
+	// 	}
+
+	// 	try {
+	// 		const response = await fetch(url, requestOptions);
+
+	// 		if (responseType === "blob") {
+	// 			const blob = await response.blob();
+	// 			return { success: true, data: blob as T };
+	// 		}
+
+	// 		const data = await response.json();
+
+	// 		if (!response.ok) {
+	// 			throw new Error(
+	// 				data.error || data.message || `HTTP error! status: ${response.status}`
+	// 			);
+	// 		}
+
+	// 		return data;
+	// 	} catch (error) {
+	// 		console.error("API request failed:", error);
+	// 		throw error;
+	// 	}
+	// }
 
 	// Authentication endpoints
 	async login(credentials: LoginRequest): Promise<ApiResponse<LoginResponse>> {
@@ -431,6 +484,41 @@ class ApiClient {
 		});
 	}
 
+	async postFormData<T>(
+		endpoint: string,
+		formData: FormData
+	): Promise<ApiResponse<T>> {
+		const url = `${this.baseURL}${endpoint}`;
+
+		const config: RequestInit = {
+			method: "POST",
+			body: formData,
+			credentials: "include",
+		};
+
+		// Add authorization header if token exists in localStorage
+		const token = localStorage.getItem("auth-token");
+		if (token) {
+			config.headers = {
+				Authorization: `Bearer ${token}`,
+			};
+		}
+
+		try {
+			const response = await fetch(url, config);
+			const data = await response.json();
+
+			if (!response.ok) {
+				throw new Error(data.error || `HTTP error! status: ${response.status}`);
+			}
+
+			return data;
+		} catch (error) {
+			console.error("API request failed:", error);
+			throw error;
+		}
+	}
+
 	async put<T = any>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
 		return this.requestCaller<T>(endpoint, {
 			method: "PUT",
@@ -486,6 +574,7 @@ export const {
 	getPaymentsByStudent,
 	createRegistration,
 	getRegistration,
+	postFormData,
 	getRegistrationsByBranch,
 	approveRegistration,
 } = apiClient;
