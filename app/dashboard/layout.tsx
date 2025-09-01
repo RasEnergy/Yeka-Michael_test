@@ -32,6 +32,7 @@ import {
 	Building2,
 	Calendar,
 	Layers,
+	ClipboardCheck,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
@@ -61,6 +62,7 @@ const navigation = [
 	{ name: "Subjects", href: "/dashboard/subjects", icon: GraduationCap },
 	{ name: "Lessons", href: "/dashboard/lessons", icon: Calendar },
 	{ name: "Modules", href: "/dashboard/modules", icon: Layers },
+	{ name: "Attendance", href: "/dashboard/attendance", icon: ClipboardCheck },
 
 	// { name: "Payments", href: "/dashboard/payments", icon: CreditCard },
 	// { name: "SMS", href: "/dashboard/sms", icon: MessageSquare },
