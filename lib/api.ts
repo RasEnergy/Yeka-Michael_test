@@ -36,7 +36,8 @@ export interface LoginResponse {
 
 class ApiClient {
 	private baseURL: string;
-
+	private isRefreshing = false;
+	private refreshPromise: Promise<any> | null = null;
 	constructor(baseURL: string) {
 		this.baseURL = baseURL;
 	}
@@ -67,6 +68,44 @@ class ApiClient {
 		return url.toString();
 	}
 
+	// private async request<T>(
+	// 	endpoint: string,
+	// 	options: RequestInit = {}
+	// ): Promise<ApiResponse<T>> {
+	// 	const url = `${this.baseURL}${endpoint}`;
+
+	// 	const config: RequestInit = {
+	// 		headers: {
+	// 			"Content-Type": "application/json",
+	// 			...options.headers,
+	// 		},
+	// 		credentials: "include", // Include cookies for authentication
+	// 		...options,
+	// 	};
+
+	// 	// Add authorization header if token exists in localStorage
+	// 	const token = localStorage.getItem("auth-token");
+	// 	if (token) {
+	// 		config.headers = {
+	// 			...config.headers,
+	// 			Authorization: `Bearer ${token}`,
+	// 		};
+	// 	}
+
+	// 	try {
+	// 		const response = await fetch(url, config);
+	// 		const data = await response.json();
+
+	// 		if (!response.ok) {
+	// 			throw new Error(data.error || `HTTP error! status: ${response.status}`);
+	// 		}
+
+	// 		return data;
+	// 	} catch (error) {
+	// 		console.error("API request failed:", error);
+	// 		throw error;
+	// 	}
+	// }
 	private async request<T>(
 		endpoint: string,
 		options: RequestInit = {}
@@ -82,17 +121,29 @@ class ApiClient {
 			...options,
 		};
 
-		// Add authorization header if token exists in localStorage
-		const token = localStorage.getItem("auth-token");
-		if (token) {
-			config.headers = {
-				...config.headers,
-				Authorization: `Bearer ${token}`,
-			};
-		}
+		// The server will automatically read the auth-token from cookies
 
 		try {
 			const response = await fetch(url, config);
+
+			if (
+				response.status === 401 &&
+				endpoint !== "/auth/refresh" &&
+				endpoint !== "/auth/login"
+			) {
+				try {
+					await this.handleTokenRefresh();
+					// Retry the original request after refresh
+					return this.request<T>(endpoint, options);
+				} catch (refreshError) {
+					// If refresh fails, redirect to login
+					if (typeof window !== "undefined") {
+						window.location.href = "/login";
+					}
+					throw refreshError;
+				}
+			}
+
 			const data = await response.json();
 
 			if (!response.ok) {
@@ -138,6 +189,24 @@ class ApiClient {
 		try {
 			const response = await fetch(url, requestOptions);
 
+			if (
+				response.status === 401 &&
+				endpoint !== "/auth/refresh" &&
+				endpoint !== "/auth/login"
+			) {
+				try {
+					await this.handleTokenRefresh();
+					// Retry the original request after refresh
+					return this.request<T>(endpoint, requestOptions);
+				} catch (refreshError) {
+					// If refresh fails, redirect to login
+					if (typeof window !== "undefined") {
+						window.location.href = "/login";
+					}
+					throw refreshError;
+				}
+			}
+
 			if (responseType === "blob") {
 				const blob = await response.blob();
 				return { success: true, data: blob as T };
@@ -155,6 +224,44 @@ class ApiClient {
 		} catch (error) {
 			console.error("API request failed:", error);
 			throw error;
+		}
+	}
+
+	private async handleTokenRefresh(): Promise<void> {
+		if (this.isRefreshing) {
+			// If already refreshing, wait for the existing refresh to complete
+			return this.refreshPromise;
+		}
+
+		this.isRefreshing = true;
+		this.refreshPromise = this.performTokenRefresh();
+
+		try {
+			await this.refreshPromise;
+		} finally {
+			this.isRefreshing = false;
+			this.refreshPromise = null;
+		}
+	}
+
+	private async performTokenRefresh(): Promise<void> {
+		const url = `${this.baseURL}/auth/refresh`;
+
+		const response = await fetch(url, {
+			method: "POST",
+			credentials: "include",
+			headers: {
+				"Content-Type": "application/json",
+			},
+		});
+
+		if (!response.ok) {
+			throw new Error("Token refresh failed");
+		}
+
+		const data = await response.json();
+		if (!data.success) {
+			throw new Error(data.error || "Token refresh failed");
 		}
 	}
 
@@ -496,16 +603,26 @@ class ApiClient {
 			credentials: "include",
 		};
 
-		// Add authorization header if token exists in localStorage
-		const token = localStorage.getItem("auth-token");
-		if (token) {
-			config.headers = {
-				Authorization: `Bearer ${token}`,
-			};
-		}
-
 		try {
 			const response = await fetch(url, config);
+
+			if (
+				response.status === 401 &&
+				endpoint !== "/auth/refresh" &&
+				endpoint !== "/auth/login"
+			) {
+				try {
+					await this.handleTokenRefresh();
+					// Retry the original request after refresh
+					return this.postFormData<T>(endpoint, formData);
+				} catch (refreshError) {
+					if (typeof window !== "undefined") {
+						window.location.href = "/login";
+					}
+					throw refreshError;
+				}
+			}
+
 			const data = await response.json();
 
 			if (!response.ok) {
@@ -518,6 +635,41 @@ class ApiClient {
 			throw error;
 		}
 	}
+
+	// async postFormData<T>(
+	// 	endpoint: string,
+	// 	formData: FormData
+	// ): Promise<ApiResponse<T>> {
+	// 	const url = `${this.baseURL}${endpoint}`;
+
+	// 	const config: RequestInit = {
+	// 		method: "POST",
+	// 		body: formData,
+	// 		credentials: "include",
+	// 	};
+
+	// 	// Add authorization header if token exists in localStorage
+	// 	const token = localStorage.getItem("auth-token");
+	// 	if (token) {
+	// 		config.headers = {
+	// 			Authorization: `Bearer ${token}`,
+	// 		};
+	// 	}
+
+	// 	try {
+	// 		const response = await fetch(url, config);
+	// 		const data = await response.json();
+
+	// 		if (!response.ok) {
+	// 			throw new Error(data.error || `HTTP error! status: ${response.status}`);
+	// 		}
+
+	// 		return data;
+	// 	} catch (error) {
+	// 		console.error("API request failed:", error);
+	// 		throw error;
+	// 	}
+	// }
 
 	async put<T = any>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
 		return this.requestCaller<T>(endpoint, {

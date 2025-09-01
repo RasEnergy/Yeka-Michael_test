@@ -80,9 +80,10 @@ export default function EditClassPage() {
 	const fetchClass = async () => {
 		try {
 			setFetchingClass(true);
-			const response = await apiClient.get(`/classes/${classId}`);
-			if (response.success) {
-				const data = response.data.class;
+			const response: any = await apiClient.get(`/classes/${classId}`);
+			console.log("Class response:", response);
+			if (response) {
+				const data = response;
 				setClassData(data);
 				setFormData({
 					name: data.name,
