@@ -268,12 +268,19 @@ export default function AttendancePage() {
 				</div>
 				{selectedClass && (
 					<Button
+						variant="outline"
 						onClick={handleExportExcel}
-						disabled={exportLoading}
-						className="bg-success hover:bg-success/90">
-						<Download className="h-4 w-4 mr-2" />
-						{exportLoading ? "Exporting..." : "Export Excel"}
+						disabled={exportLoading}>
+						{exportLoading ? "Exporting..." : "Export Attendance"}
 					</Button>
+
+					// <Button
+					// 	onClick={handleExportExcel}
+					// 	disabled={exportLoading}
+					// 	className="bg-success hover:bg-success/90">
+					// 	<Download className="h-4 w-4 mr-2" />
+					// 	{exportLoading ? "Exporting..." : "Export Excel"}
+					// </Button>
 				)}
 			</div>
 
