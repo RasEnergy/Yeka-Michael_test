@@ -227,6 +227,71 @@ class ApiClient {
 		}
 	}
 
+	private async requestBlobCaller<T = any>(
+		endpoint: string,
+		config: RequestConfig = {}
+	): Promise<ApiResponse<T>> {
+		const { params, responseType = "json", headers, ...requestConfig } = config;
+		const url = this.buildUrl(endpoint, params);
+
+		let finalHeaders: HeadersInit = {
+			"Content-Type": "application/json",
+			...headers,
+		};
+
+		const token = localStorage.getItem("auth-token");
+		if (token) {
+			finalHeaders = {
+				...finalHeaders,
+				Authorization: `Bearer ${token}`,
+			};
+		}
+
+		const requestOptions: RequestInit = {
+			headers: finalHeaders,
+			credentials: "include",
+			...requestConfig,
+		};
+
+		try {
+			const response = await fetch(url, requestOptions);
+
+			if (
+				response.status === 401 &&
+				endpoint !== "/auth/refresh" &&
+				endpoint !== "/auth/login"
+			) {
+				try {
+					await this.handleTokenRefresh();
+					return this.request<T>(endpoint, requestOptions);
+				} catch (refreshError) {
+					if (typeof window !== "undefined") {
+						window.location.href = "/login";
+					}
+					throw refreshError;
+				}
+			}
+
+			if (responseType === "blob") {
+				const blob = await response.blob();
+				return { success: true, data: blob as T };
+			}
+
+			const data = await response.json();
+
+			if (!response.ok) {
+				throw new Error(
+					data.error || data.message || `HTTP error! status: ${response.status}`
+				);
+			}
+
+			return data;
+		} catch (error) {
+			console.error("API request failed:", error);
+			throw error;
+		}
+	}
+
 	private async handleTokenRefresh(): Promise<void> {
 		if (this.isRefreshing) {
 			// If already refreshing, wait for the existing refresh to complete
@@ -688,6 +753,19 @@ class ApiClient {
 	async delete<T = any>(endpoint: string): Promise<ApiResponse<T>> {
 		return this.requestCaller<T>(endpoint, { method: "DELETE" });
 	}
+	// Special method for blob responses (like file downloads)
+	async getBlob(
+		endpoint: string,
+		params?: Record<string, any>
+	): Promise<Blob | any> {
+		console.log(`GET blob request to ${endpoint} with params`, params);
+		const response = await this.requestBlobCaller<Blob>(endpoint, {
+			method: "GET",
+			params,
+			responseType: "blob",
+		});
+		return response.data;
+	}
 }
 
 // Create and export a singleton instance
@@ -729,4 +807,5 @@ export const {
 	postFormData,
 	getRegistrationsByBranch,
 	approveRegistration,
+	getBlob,
 } = apiClient;

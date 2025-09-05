@@ -308,20 +308,12 @@ export default function EnrollmentPage() {
 		}
 
 		try {
-			const response = await fetch("/api/enrollment/unenroll", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					registrationId: unenrollingStudent,
-				}),
+			const response = await apiClient.post("/enrollment/unenroll", {
+				registrationId: unenrollingStudent,
 			});
 
-			const data = await response.json();
-
-			if (!response.ok) {
-				throw new Error(data.error || "Unenrollment failed");
+			if (!response.success) {
+				throw new Error(response.error || "Unenrollment failed");
 			}
 
 			toast({
@@ -344,22 +336,13 @@ export default function EnrollmentPage() {
 	const handleExport = async () => {
 		setIsExporting(true);
 		try {
-			const params = new URLSearchParams({
-				...(exportGrade !== "all" && { gradeId: exportGrade }),
-			});
-
-			const response = await fetch(`/api/enrollment/export?${params}`, {
-				method: "GET",
-				headers: {
-					"Content-Type": "application/json",
-				},
-			});
-
-			if (!response.ok) {
-				throw new Error("Export failed");
+			const params: Record<string, any> = {};
+			if (exportGrade !== "all") {
+				params.gradeId = exportGrade;
 			}
 
-			const blob = await response.blob();
+			const blob = await apiClient.getBlob("/enrollments/export", params);
+
 			const url = window.URL.createObjectURL(blob);
 			const a = document.createElement("a");
 			a.style.display = "none";
