@@ -473,7 +473,7 @@ export default function EnrollmentPage() {
 										ETB {registration.totalAmount.toLocaleString()}
 									</TableCell>
 									<TableCell>
-										{(registration as any).student.grade.name}
+										{(registration as any).student?.grade?.name || "N/A"}
 									</TableCell>
 									<TableCell>{getStatusBadge(registration.status)}</TableCell>
 									<TableCell>
